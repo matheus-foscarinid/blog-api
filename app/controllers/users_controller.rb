@@ -1,4 +1,5 @@
 class UsersController < ApplicationController
+  before_action :authorized, except: [:create, :login]
   before_action :set_user, only: [:show, :edit, :update, :destroy]
 
   # GET /users
@@ -10,6 +11,7 @@ class UsersController < ApplicationController
   # GET /users/1
   # GET /users/1.json
   def show
+    render json: {user: @user, token: @token}
   end
 
   # GET /users/new
@@ -25,40 +27,39 @@ class UsersController < ApplicationController
   # POST /users.json
   def create
     @user = User.new(user_params)
-
-    respond_to do |format|
       if @user.save
-        format.html { redirect_to @user, notice: 'User was successfully created.' }
-        format.json { render :show, status: :created, location: @user }
+        @token = encode_token({user_id: @user.id})
+        render json: {user: @user, token: @token}
       else
-        format.html { render :new }
-        format.json { render json: @user.errors, status: :unprocessable_entity }
+        render json: @user.errors, status: :unprocessable_entity
       end
+  end
+
+  def login
+    @user = User.find_by(email: user_params[:email])
+    if @user && @user.authenticate(user_params[:password])
+      @token = encode_token({user_id: @user.id})
+      render json: {user: @user, token: @token}
+    else
+      render json: {error: "Invalid username or password"}
     end
   end
 
   # PATCH/PUT /users/1
   # PATCH/PUT /users/1.json
   def update
-    respond_to do |format|
       if @user.update(user_params)
-        format.html { redirect_to @user, notice: 'User was successfully updated.' }
-        format.json { render :show, status: :ok, location: @user }
+        render json: {user: @user, token: @token}
       else
-        format.html { render :edit }
-        format.json { render json: @user.errors, status: :unprocessable_entity }
+        frender json: @user.errors, status: :unprocessable_entity 
       end
-    end
   end
 
   # DELETE /users/1
   # DELETE /users/1.json
   def destroy
     @user.destroy
-    respond_to do |format|
-      format.html { redirect_to users_url, notice: 'User was successfully destroyed.' }
-      format.json { head :no_content }
-    end
+       head :no_content
   end
 
   private
@@ -69,6 +70,6 @@ class UsersController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def user_params
-      params.require(:user).permit(:name, :email)
+      params.require(:user).permit(:name, :email, :password)
     end
 end

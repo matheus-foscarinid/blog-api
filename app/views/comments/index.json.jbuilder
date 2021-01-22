@@ -1,0 +1,1 @@
+json.array! @comments, :id, :text

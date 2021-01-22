@@ -1,12 +1,12 @@
 class CommentsController < ApplicationController
-
+    
+    before_action :authorized, except: [:show]
     before_action :set_post, only: [:index, :create]
     before_action :set_comment, only: [:show, :update, :destroy]
 
     #  GET /posts/:post_id/comments
     def index
         @comments = @post.comments
-        render json: @comments
     end
 
     # GET /posts/:post_id/comments/:id
@@ -17,6 +17,7 @@ class CommentsController < ApplicationController
     # POST /posts/:post_id/comments
     def create
         @comment = @post.comments.new(comment_params)
+        @comment.user_id = @user.id
         if @comment.save
             render json: @comment, status: :created
         else
@@ -26,17 +27,26 @@ class CommentsController < ApplicationController
 
     # PATCH/PUT /posts/:post_id/comment/:id
     def update
-        if @comment.update(comment_params)
-            render json: @comment, status: :ok
+
+        if is_owner?
+            if @comment.update(comment_params)
+                render json: @comment, status: :ok
+            else
+                render json: @comment.errors, status: :unprocessable_entity
+            end
         else
-            render json: @comment.errors, status: :unprocessable_entity
+            render json: {error: 'User not authorized'}, status: :unauthorized
         end
     end
 
     # DELETE /posts/:post_id/comment/:id
     def destroy
-        @comment.destroy
-        head :no_content
+        if is_owner? || is_post_owner?
+            @comment.destroy
+            head :no_content
+        else
+            render json: {error: 'User not authorized'}, status: :unauthorized
+        end
     end
 
     private 
@@ -47,6 +57,15 @@ class CommentsController < ApplicationController
 
     def set_post
         @post = Post.find(params[:post_id])
+    end
+
+    def is_owner?
+        @comment.user_id = @user.id
+    end
+
+    def is_post_owner?
+        post = @comment.post
+        post.user_id == @user.id
     end
 
     def set_comment

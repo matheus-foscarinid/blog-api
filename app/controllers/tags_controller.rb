@@ -4,12 +4,12 @@ class TagsController < ApplicationController
 
     def index
         @tags = Tag.all()
-        render json: @tags
     end
 
     def create
         @tag = Tag.new(tag_params)
         if @tag.save
+            byebug
             render json: @tag, status: :created
         else
             render json: @tag.errors, status: :unprocessable_entity
