@@ -1,10 +1,11 @@
 class PostsController < ApplicationController
+    before_action :authorized, except: [:index, :show]
     before_action :set_post, only: [:show, :update, :destroy, :link_tag, :unlink_tag]
     before_action :render_not_authorized_user, except: [:index, :show, :create]
     before_action :set_tag, only: [:link_tag, :unlink_tag]
     # GET /posts
     def index
-        @posts = Post.all()
+        @posts = Post.all().order(updated_at: :desc)
     end
 
     # POST /posts
@@ -34,8 +35,12 @@ class PostsController < ApplicationController
 
     # DELETE /posts/:id/
     def destroy
-        @post.destroy
-        head :no_content
+        if is_authorized?
+            @post.destroy
+            render json: {message: "Post destroyed!"}, status: :ok
+        else 
+            render json: {message: @post.errors}, status: :access_denied
+        end
     end
 
     # POST /posts/:id/tag

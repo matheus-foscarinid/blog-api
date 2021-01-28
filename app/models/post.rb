@@ -1,9 +1,9 @@
 class Post < ApplicationRecord
-    has_many :comments
+    has_many :comments, :dependent => :destroy
     belongs_to :user
     has_and_belongs_to_many :tags, before_add: :check_tag
-
-    validates :title, length: { in: 1..100 }, uniqueness: true, exclusion: {in: %w(god jesus admin)}
+    
+    validates :title, length: { in: 1..100 }
     validates :description, length: { minimum: 10 }
 
     #validates_with Validators::TitleWithPost
